@@ -1,7 +1,6 @@
 # MedianXL SupportTools
 
-#### sys_report.bat
-Output Example:
+#### sys_report.bat output example:
 ```
 D2 Installion Path: F:\Diablo II
 

@@ -58,7 +58,7 @@ FOR /F "delims=" %%a in ('REG QUERY "%reg_dep_path%" ^| FIND /I "%path_d2_instal
     
     REM Strip extra spaces, split on reg entry type, assign to aray
     SET "match=!match:    =!"
-    SET "match=!match:REG_SZ=, !"
+    SET "match='!match:REG_SZ=', '!'"
 
     REM Output info
     CALL :log "!match!"

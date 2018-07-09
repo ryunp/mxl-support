@@ -58,8 +58,10 @@ REM ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 REM Patch Checksum
 REM ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-SET "patchfile_MD5_113c=eb514785fc4666bd53d97ad69ff53d16"
 SET "patchfile_path=%path_d2_install%\patch_d2.mpq"
+
+REM ~ patch_d2.mpq version hash definitions ~
+SET "patchfile_MD5_113c=eb514785fc4666bd53d97ad69ff53d16"
 
 REM ~ Section header ~
 CALL :log "[patch_d2.mpq Checksum]"
@@ -70,7 +72,7 @@ CertUtil >nul 2>&1 && (
     FOR /F "skip=1 delims=" %%a IN ('CertUtil /hashfile "%patchfile_path%" MD5 ^| findstr /v "CertUtil"') DO SET "patch_checksum=%%a"
     SET "patch_checksum=!patch_checksum: =!"
     
-    REM ~ Check patch_d2.mpq version ~
+    REM ~ Check against known hashes ~
     IF "!patch_checksum!" == "!patchfile_MD5_113c!" (
         SET "patch_result=v1.13c detected"
     ) ELSE (
@@ -98,7 +100,7 @@ REM ~ Check if registry entries exists ~
 FOR /F "delims=" %%a IN ('REG QUERY "%reg_dep_path%" ^| FIND /I "%path_d2_install%"') DO (
     SET "match=%%a"
 
-    REM Strip extra spaces, split on reg entry type, assign to aray
+    REM ~ Strip extra spaces, split on reg entry type, assign to aray ~
     SET "match=!match:    =!"
     SET "match='!match:REG_SZ=', '!'"
 

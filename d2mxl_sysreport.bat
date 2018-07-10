@@ -1,9 +1,18 @@
 @ECHO OFF
-REM Author: Ryan Paul
-REM Date: 07/09/18
-REM Version: 0.3
+REM Authors: Ryan Paul & Gavin Kehler
+REM Date: 07/10/18
+REM Version: 0.4
 REM Usage: d2mxl_sysreport.bat
-REM Description: Saves various D2 and OS settings report to a text file
+REM Description: Reports various D2 and OS settings to a text file
+
+REM ~ Action List ~
+REM 1. Install Path
+REM 2. Patch Checksum
+REM 3. DEP Settings
+REM 4. Video Mode
+REM 5. Overlay Detection
+REM 6. File List
+
 
 SETLOCAL EnableDelayedExpansion
 SETLOCAL EnableExtensions
@@ -11,7 +20,7 @@ SETLOCAL EnableExtensions
 
 
 REM ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-REM Report file
+REM Output file
 REM ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 REM ~ Define output temp file ~
@@ -20,34 +29,34 @@ SET "output_file=%~n0.txt"
 REM ~ Test for report text file permissions ~
 TYPE NUL > "%output_file%"
 IF EXIST "%output_file%" (
-    SET "tmpfile_exists=TRUE"
+    SET "output_file_exists=TRUE"
 ) ELSE (
-    CALL :log "Could not create temp file '%output_file%'^! Outputting to console..."
+    CALL :log "Could not create '%output_file%'^^^! Sending output to console..."
     CALL :log_nl
 )
 
 
 
 REM ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-REM Diablo II Install Path
+REM 1. Install Path
 REM ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 SET "reg_diabloII=HKEY_CURRENT_USER\Software\Blizzard Entertainment\Diablo II"
 
-REM ~ Section header ~
-CALL :log "[Installation Path]"
-
 REM ~ Check for registry key ~
 REG QUERY "%reg_diabloII%" >nul 2>&1
 IF %ERRORLEVEL% EQU 0 (
-    FOR /F "tokens=2*" %%a IN ('REG QUERY "%reg_diabloII%" /v "InstallPath"') DO SET "path_d2_install=%%b"
-    IF "!path_d2_install: =!" == "" (
-        CALL :log "No Diablo II path found in registry^!"
+    CALL :log "[Installation Path]"
+    FOR /F "tokens=2*" %%a IN ('REG QUERY "%reg_diabloII%" /v "InstallPath"') DO SET "path_d2_install=%%~b"
+    IF "!path_d2_install!" == "" (
+        CALL :log "Diablo II registry sub-key 'InstallPath' not found^^^!"
+        GOTO :end
     ) ELSE (
         CALL :log "'!path_d2_install!'"
     )
 ) ELSE (
-    CALL :log "No 'InstallPath' registry key detected!"
+    CALL :log "Parent 'Diablo II' registry key not found^^^!"
+    GOTO :end
 )
 
 CALL :log_nl
@@ -55,7 +64,7 @@ CALL :log_nl
 
 
 REM ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-REM Patch Checksum
+REM 2. Patch Checksum
 REM ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 SET "patchfile_path=%path_d2_install%\patch_d2.mpq"
@@ -88,7 +97,7 @@ CALL :log_nl
 
 
 REM ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-REM DEP Settings
+REM 3. DEP Settings
 REM ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 SET "reg_dep_path=HKEY_CURRENT_USER\Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers"
@@ -113,7 +122,80 @@ CALL :log_nl
 
 
 REM ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-REM Diablo II File Listing
+REM 4. Video Mode
+REM ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+SET "reg_d2_video=HKEY_CURRENT_USER\Software\Blizzard Entertainment\Diablo II\VideoConfig"
+
+REM ~ Video setting definitions ~
+SET "vid_directdraw=0x0"
+SET "vid_direct3d=0x1"
+SET "vid_glide=0x3"
+
+REM ~ Default to unset ~
+SET "display_mode=Not Set"
+
+REM ~ Query registry ~
+FOR /F "tokens=2*" %%a IN ('REG QUERY "%reg_d2_video%" ^/v "Render"') DO SET "video_setting=%%b"
+
+REM ~ Map video mode code to human readable label ~
+IF "%video_setting%" == "%vid_directdraw%" SET "display_mode=Glide"
+IF "%video_setting%" == "%vid_direct3d%" SET "display_mode=Direct3D"
+IF "%video_setting%" == "%vid_glide%" SET "display_mode=DirectDraw"
+
+REM ~ Section header ~
+CALL :log "[Display Mode]"
+
+CALL :log "%display_mode%"
+CALL :log_nl
+
+
+
+REM ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+REM 5. Overlay Detection
+REM ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+SET "ol_array_len=0"
+
+REM ~ Overlay definitions ~
+SET "ps_steam=GameOverlayUI.exe"
+SET "ps_nvidia=nvsphelper.exe"
+SET "ps_ati=amddvr.exe"
+SET "ps_gamebar=GamePanel.exe"
+SET "ps_discord=Discord.exe"
+
+REM ~ Search process list for known overlays ~
+FOR /F "tokens=1*" %%a IN ('tasklist /nh') DO (
+    SET "ps_name=%%~a"
+    
+    IF "!ps_name!" == "%ps_steam%" CALL :ol_array_add "Steam"
+    IF "!ps_name!" == "%ps_nvidia%" CALL :ol_array_add "Nvidia"
+    IF "!ps_name!" == "%ps_ati%" CALL :ol_array_add "ATI"
+    IF "!ps_name!" == "%ps_gamebar%" CALL :ol_array_add "GameBar"
+)
+
+REM ~ Special check for Discord ~
+FOR /F "tokens=1,2" %%a IN ('wmic process where caption^="!ps_discord!" get commandline') DO (
+    IF "%%~b" == "--overlay-host" CALL :ol_array_add "Discord"
+)
+
+
+REM ~ Section header ~
+CALL :log "[Gaming Overlay Detection]"
+
+REM ~ Iterate over matched overlays ~
+IF %ol_array_len% GTR 0 (
+    FOR /L %%i IN (1,1,%ol_array_len%) DO CALL :log "!overlay_array[%%i]!"
+) ELSE (
+    CALL :log "No overlays detected!"
+)
+
+CALL :log_nl
+
+
+
+REM ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+REM 6. File List
 REM ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 REM ~ Section header ~
@@ -130,10 +212,11 @@ CALL :log_nl
 
 
 REM ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-REM Show output temp file, if exists
+REM Show output file, if existing
 REM ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-IF DEFINED tmpfile_exists (
+:end
+IF DEFINED output_file_exists (
     NOTEPAD %output_file%
 ) ELSE (
     PAUSE
@@ -155,7 +238,7 @@ REM ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 REM ~ Function signature: log(str) ~
 :log
-    IF DEFINED tmpfile_exists (
+    IF DEFINED output_file_exists (
         ECHO %~1>>"%output_file%"
     ) ELSE (
         ECHO %~1
@@ -165,9 +248,16 @@ EXIT /B 0
 
 REM ~ Outputs a newline ~
 :log_nl
-    IF DEFINED tmpfile_exists (
+    IF DEFINED output_file_exists (
         ECHO\>>"%output_file%"
     ) ELSE (
         ECHO\
     )
+EXIT /B 0
+
+
+REM ~ for Overlay Detection's array.push shim ~
+:ol_array_add
+    SET /A ol_array_len += 1
+    SET "overlay_array[%ol_array_len%]=%~1"
 EXIT /B 0

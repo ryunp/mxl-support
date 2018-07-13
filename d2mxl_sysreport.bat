@@ -1,7 +1,7 @@
 @ECHO OFF
 REM Authors: Ryan Paul & Gavin Kehler
-REM Date: 07/10/18
-REM Version: 0.4
+REM Date: 07/13/18
+REM Version: 0.4.1
 REM Usage: d2mxl_sysreport.bat
 REM Description: Reports various D2 and OS settings to a text file
 
@@ -47,7 +47,7 @@ REM ~ Check for registry key ~
 REG QUERY "%reg_diabloII%" >nul 2>&1
 IF %ERRORLEVEL% EQU 0 (
     CALL :log "[Installation Path]"
-    FOR /F "tokens=2*" %%a IN ('REG QUERY "%reg_diabloII%" /v "InstallPath"') DO SET "path_d2_install=%%~b"
+    FOR /F "tokens=2*" %%a IN ('REG QUERY "%reg_diabloII%" /v "InstallPath"') DO SET "path_d2_install=%%b"
     IF "!path_d2_install!" == "" (
         CALL :log "Diablo II registry sub-key 'InstallPath' not found^^^!"
         GOTO :end
@@ -111,11 +111,12 @@ FOR /F "delims=" %%a IN ('REG QUERY "%reg_dep_path%" ^| FIND /I "%path_d2_instal
 
     REM ~ Strip extra spaces, split on reg entry type, assign to aray ~
     SET "match=!match:    =!"
+    rem SET "match='!match:REG_SZ=', '!'"
     SET "match='!match:REG_SZ=', '!'"
 
     CALL :log "!match!"
 )
-IF "%match%"=="" CALL :log "No D2 registry key detected!"
+IF "%match%" == "" CALL :log "No D2 registry key detected!"
 
 CALL :log_nl
 
@@ -139,9 +140,9 @@ REM ~ Query registry ~
 FOR /F "tokens=2*" %%a IN ('REG QUERY "%reg_d2_video%" ^/v "Render"') DO SET "video_setting=%%b"
 
 REM ~ Map video mode code to human readable label ~
-IF "%video_setting%" == "%vid_directdraw%" SET "display_mode=Glide"
+IF "%video_setting%" == "%vid_directdraw%" SET "display_mode=DirectDraw"
 IF "%video_setting%" == "%vid_direct3d%" SET "display_mode=Direct3D"
-IF "%video_setting%" == "%vid_glide%" SET "display_mode=DirectDraw"
+IF "%video_setting%" == "%vid_glide%" SET "display_mode=Glide"
 
 REM ~ Section header ~
 CALL :log "[Display Mode]"
@@ -166,7 +167,7 @@ SET "ps_discord=Discord.exe"
 
 REM ~ Search process list for known overlays ~
 FOR /F "tokens=1*" %%a IN ('tasklist /nh') DO (
-    SET "ps_name=%%~a"
+    SET "ps_name=%%a"
     
     IF "!ps_name!" == "%ps_steam%" CALL :ol_array_add "Steam"
     IF "!ps_name!" == "%ps_nvidia%" CALL :ol_array_add "Nvidia"
@@ -176,9 +177,8 @@ FOR /F "tokens=1*" %%a IN ('tasklist /nh') DO (
 
 REM ~ Special check for Discord ~
 FOR /F "tokens=1,2" %%a IN ('wmic process where caption^="!ps_discord!" get commandline') DO (
-    IF "%%~b" == "--overlay-host" CALL :ol_array_add "Discord"
+    IF "%%b" == "--overlay-host" CALL :ol_array_add "Discord"
 )
-
 
 REM ~ Section header ~
 CALL :log "[Gaming Overlay Detection]"
@@ -204,7 +204,7 @@ CALL :log "[D2 Root File List]"
 REM ~ /B reduces output to only names, /O:E sorts by extension ~
 FOR /F "delims=" %%a IN ('DIR /B /O:E "%path_d2_install%" ^| findstr /v /i "screenshot"') DO (
     REM Output info
-    CALL :log "%%~a"
+    CALL :log "%%a"
 )
 
 CALL :log_nl
@@ -238,10 +238,11 @@ REM ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 REM ~ Function signature: log(str) ~
 :log
+    REM ~ Parens are needed to keep all characters escaped as strings ~
     IF DEFINED output_file_exists (
-        ECHO %~1>>"%output_file%"
+        (ECHO %~1)>>"%output_file%"
     ) ELSE (
-        ECHO %~1
+        (ECHO %~1)
     )
 EXIT /B 0
 

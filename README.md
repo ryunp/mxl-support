@@ -12,10 +12,11 @@ Reports various D2 and OS settings.
 
 #### Script logic
 * Query Install Path
-* Check Patch Version Checksum
+* Get Patch Version Checksum
 * Query DEP Settings
 * Query Video Mode
-* Overlay Process Detection
+* Query Running Overlay Processes
+* Get PlugY Settings
 * Get File List
 
 #### Example

@@ -1,7 +1,7 @@
 @ECHO OFF
 REM Authors: Ryan Paul & Gavin Kehler
 REM Date: 07/13/18
-REM Version: 0.4.1
+REM Version: 0.5.0
 REM Usage: d2mxl_sysreport.bat
 REM Description: Reports various D2 and OS settings to a text file
 
@@ -11,7 +11,8 @@ REM 2. Patch Checksum
 REM 3. DEP Settings
 REM 4. Video Mode
 REM 5. Overlay Detection
-REM 6. File List
+REM 6. PlugY Settings
+REM 7. File List
 
 
 SETLOCAL EnableDelayedExpansion
@@ -195,7 +196,35 @@ CALL :log_nl
 
 
 REM ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-REM 6. File List
+REM 6. PlugY Settings
+REM ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+SET "plugy_config_path=%path_d2_install%\PlugY.ini"
+
+REM ~ Section header ~
+CALL :log "[PlugY Settings]"
+
+IF EXIST "%plugy_config_path%" (
+    FOR /F "usebackq tokens=1* delims==" %%a IN ("%plugy_config_path%") DO (
+        REM ~ %%a=key, %%b=value ~
+
+        REM ~ Check if desired key/value pair ~
+        SET "desired_prop=true"
+        IF NOT "%%a" == "ActiveLaunchAnyNumberOfLOD" IF NOT "%%a" == "ActivePlugin" IF NOT "%%a" == "DisableBattleNet" IF NOT "%%a" == "DllToLoad" SET "desired_prop=false"
+        IF "!desired_prop!" == "true" CALL :log "%%a = %%b"
+    )
+) ELSE (
+    CALL :log "'%plugy_config_path%' not found^^^!"
+    CALL :log_nl
+)
+
+CALL :log_nl
+
+
+
+
+REM ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+REM 7. File List
 REM ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 REM ~ Section header ~

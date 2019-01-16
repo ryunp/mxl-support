@@ -11,13 +11,13 @@ General feedback and discussion is facilitated at the [Median XL forum thread](h
 Reports various D2 and OS settings.
 
 #### Script logic
-* Query Install Path
-* Get Patch Version Checksum
-* Query DEP Settings
-* Query Video Mode
-* Query Running Overlay Processes
-* Get PlugY Settings
-* Get File List
+* Install Path
+* Patch Version Checksum
+* DEP Settings
+* Video Mode
+* Running Overlay Processes
+* PlugY Settings
+* File List
 
 #### Example
 ![GIF Example](media/d2mxl_sysreport.gif)

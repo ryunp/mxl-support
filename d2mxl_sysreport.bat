@@ -1,7 +1,7 @@
 @ECHO OFF
 REM Authors: Ryan Paul & Gavin Kehler
-REM Date: 07/13/18
-REM Version: 0.5.0
+REM Date: 01/15/19
+REM Version: 0.6.0
 REM Usage: d2mxl_sysreport.bat
 REM Description: Reports various D2 and OS settings to a text file
 
@@ -48,7 +48,14 @@ REM ~ Check for registry key ~
 REG QUERY "%reg_diabloII%" >nul 2>&1
 IF %ERRORLEVEL% EQU 0 (
     CALL :log "[Installation Path]"
+
+    REM ~ Search registry entries ~
     FOR /F "tokens=2*" %%a IN ('REG QUERY "%reg_diabloII%" /v "InstallPath"') DO SET "path_d2_install=%%b"
+
+    REM ~ Remove trailing backslash ~
+    IF %path_d2_install:~-1%==\ SET "path_d2_install=%path_d2_install:~0,-1%"
+
+    REM ~ Report findings ~
     IF "!path_d2_install!" == "" (
         CALL :log "Diablo II registry sub-key 'InstallPath' not found^^^!"
         GOTO :end
@@ -102,17 +109,19 @@ REM 3. DEP Settings
 REM ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 SET "reg_dep_path=HKEY_CURRENT_USER\Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers"
+SET "reg_dep_search=Diablo II"
 
 REM ~ Section header ~
 CALL :log "[DEP Settings]"
 
 REM ~ Check if registry entries exists ~
-FOR /F "delims=" %%a IN ('REG QUERY "%reg_dep_path%" ^| FIND /I "%path_d2_install%"') DO (
+FOR /F "delims=" %%a IN ('REG QUERY "%reg_dep_path%" ^| FIND /I "%reg_dep_search%"') DO (
     SET "match=%%a"
 
-    REM ~ Strip extra spaces, split on reg entry type, assign to aray ~
+    REM ~ Strip extra spaces ~
     SET "match=!match:    =!"
-    rem SET "match='!match:REG_SZ=', '!'"
+
+    REM ~ Modify to CSV of key and value ~
     SET "match='!match:REG_SZ=', '!'"
 
     CALL :log "!match!"
@@ -269,9 +278,9 @@ REM ~ Function signature: log(str) ~
 :log
     REM ~ Parens are needed to keep all characters escaped as strings ~
     IF DEFINED output_file_exists (
-        (ECHO %~1)>>"%output_file%"
+        (ECHO "%~1")>>"%output_file%"
     ) ELSE (
-        (ECHO %~1)
+        (ECHO "%~1")
     )
 EXIT /B 0
 

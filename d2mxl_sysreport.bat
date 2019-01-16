@@ -53,7 +53,7 @@ IF %ERRORLEVEL% EQU 0 (
     FOR /F "tokens=2*" %%a IN ('REG QUERY "%reg_diabloII%" /v "InstallPath"') DO SET "path_d2_install=%%b"
 
     REM ~ Remove trailing backslash ~
-    IF %path_d2_install:~-1%==\ SET "path_d2_install=%path_d2_install:~0,-1%"
+    IF "!path_d2_install:~-1!" == "\" SET "path_d2_install=!path_d2_install:~0,-1!"
 
     REM ~ Report findings ~
     IF "!path_d2_install!" == "" (
@@ -108,11 +108,34 @@ REM ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 REM 3. DEP Settings
 REM ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-SET "reg_dep_path=HKEY_CURRENT_USER\Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers"
+REM ~ User level DEP entries ~
 SET "reg_dep_search=Diablo II"
+SET "reg_dep_path=HKEY_CURRENT_USER\Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers"
 
 REM ~ Section header ~
-CALL :log "[DEP Settings]"
+CALL :log "[User DEP Settings]"
+
+REM ~ Check if registry entries exists ~
+FOR /F "delims=" %%a IN ('REG QUERY "%reg_dep_path%" ^| FIND /I "%reg_dep_search%"') DO (
+    SET "match=%%a"
+
+    REM ~ Strip extra spaces ~
+    SET "match=!match:    =!"
+
+    REM ~ Modify to CSV of key and value ~
+    SET "match='!match:REG_SZ=', '!'"
+
+    CALL :log "!match!"
+)
+IF "%match%" == "" CALL :log "No D2 registry key detected!"
+
+CALL :log_nl
+
+REM ~ Administration level DEP entries, requires Administrator level permissions when run ~
+SET "reg_dep_path=HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers"
+
+REM ~ Section header ~
+CALL :log "[System DEP Settings]"
 
 REM ~ Check if registry entries exists ~
 FOR /F "delims=" %%a IN ('REG QUERY "%reg_dep_path%" ^| FIND /I "%reg_dep_search%"') DO (

@@ -25,7 +25,7 @@ REM Output file
 REM ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 REM ~ Define output temp file ~
-SET "output_file=%~n0.txt"
+SET "output_file=%tmp%\%~n0.txt"
 
 REM ~ Test for report text file permissions ~
 TYPE NUL > "%output_file%"
@@ -131,7 +131,7 @@ IF "%match%" == "" CALL :log "No D2 registry key detected!"
 
 CALL :log_nl
 
-REM ~ Administration level DEP entries, requires Administrator level permissions when run ~
+REM ~ Administration level DEP entries ~
 SET "reg_dep_path=HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers"
 
 REM ~ Section header ~
